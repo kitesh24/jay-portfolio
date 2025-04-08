@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jay's Trading Blog</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSB7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <!-- Quill.js CDN for rich-text editor -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <!-- AWS SDK for S3 -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1470.0.min.js"></script>
+    <link rel="stylesheet" href="blog.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <img src="/public/images/image (3).jpg" alt="Logo" />
+        <div class="logo">Jay's Trading Bot</div>
+      </div>
+      <button
+        class="toggle-btn"
+        id="mobile-menu"
+        aria-label="Toggle navigation menu"
+      >
+        <i class="fas fa-bars"></i>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html" aria-label="Home"
+          ><i class="fas fa-home"></i> Home</a
+        >
+        <a href="blog.html" aria-label="Dashboard"
+          ><i class="fas fa-chart-line"></i> Dashboard</a
+        >
+        <a href="services.html" aria-label="Services"
+          ><i class="fas fa-cogs"></i> Services</a
+        >
+      </nav>
+      <div class="auth-controls">
+        <button id="login-btn" style="display: none">Login</button>
+        <button id="logout-btn" style="display: none">Logout</button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          🌓
+        </button>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Auth Section -->
+      <section id="auth-section" style="display: none">
+        <h2>Login</h2>
+        <div class="form-container">
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Enter your email" />
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+            />
+          </div>
+          <button id="login-submit">Login</button>
+          <button id="signup-submit">Sign Up</button>
+        </div>
+      </section>
+
+      <!-- Form to Add/Edit Posts -->
+      <section class="post-form-section" style="display: none">
+        <h2 id="form-title">Add New Post</h2>
+        <div class="form-container">
+          <div class="form-group">
+            <label for="post-title">Title:</label>
+            <input type="text" id="post-title" placeholder="Enter post title" />
+          </div>
+          <div class="form-group">
+            <label for="post-content">Content:</label>
+            <div id="editor-container" style="height: 200px"></div>
+          </div>
+          <div class="form-group">
+            <label for="post-image">Featured Image:</label>
+            <input type="file" id="post-image" accept="image/*" />
+            <div id="image-preview" style="margin-top: 1rem"></div>
+          </div>
+          <div class="form-group">
+            <label for="post-tags">Tags (comma-separated):</label>
+            <input
+              type="text"
+              id="post-tags"
+              placeholder="e.g., trading, finance, tips"
+            />
+          </div>
+          <div class="form-group">
+            <label for="post-category">Category:</label>
+            <select id="post-category">
+              <option value="">Select a category</option>
+            </select>
+            <button id="add-category-btn">Add New Category</button>
+          </div>
+          <input type="hidden" id="edit-id" value="" />
+          <button id="submit-post">Submit Post</button>
+          <button id="cancel-edit" style="display: none">Cancel Edit</button>
+        </div>
+        <div class="export-import">
+          <button id="export-posts">Export Posts</button>
+          <input type="file" id="import-posts" accept=".json" />
+          <button id="import-posts-btn">Import Posts</button>
+        </div>
+      </section>
+
+      <!-- Search and Filter Section -->
+      <section class="search-filter-section">
+        <h2>Search & Filter Posts</h2>
+        <div class="form-container">
+          <div class="form-group">
+            <label for="search-input">Search:</label>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Search by title, content, or tags"
+            />
+          </div>
+          <div class="form-group">
+            <label for="filter-category">Filter by Category:</label>
+            <select id="filter-category">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Blog Posts Section -->
+      <section class="blog-posts">
+        <h2>Blog Posts</h2>
+        <div id="posts-container"></div>
+        <div class="pagination">
+          <button id="prev-page" disabled>Previous</button>
+          <span id="page-info"></span>
+          <button id="next-page">Next</button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <p>© 2025 Jay - All Rights Reserved</p>
+    </footer>
+
+    <script>
+      // Firebase Configuration (Replace with your Firebase project config)
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID",
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Initialize AWS S3
+      AWS.config.update({
+        accessKeyId: "YOUR_AWS_ACCESS_KEY_ID",
+        secretAccessKey: "YOUR_AWS_SECRET_ACCESS_KEY",
+        region: "us-east-1",
+      });
+      const s3 = new AWS.S3();
+
+      // Initialize Quill editor with custom image handler
+      const quill = new Quill("#editor-container", {
+        theme: "snow",
+        modules: {
+          toolbar: {
+            container: [
+              [{ header: [1, 2, 3, false] }],
+              ["bold", "italic", "underline"],
+              ["link", "blockquote", "code-block"],
+              [{ list: "ordered" }, { list: "bullet" }],
+              ["image"],
+              ["clean"],
+            ],
+            handlers: {
+              image: imageHandler,
+            },
+          },
+        },
+        placeholder: "Write your post content here...",
+      });
+
+      // Custom image handler for Quill (upload to S3)
+      function imageHandler() {
+        const input = document.createElement("input");
+        input.setAttribute("type", "file");
+        input.setAttribute("accept", "image/*");
+        input.click();
+
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (file) {
+            const imageUrl = await uploadImageToS3(file);
+            const range = quill.getSelection();
+            quill.insertEmbed(range.index, "image", imageUrl);
+          }
+        };
+      }
+
+      // Upload image to S3
+      async function uploadImageToS3(file) {
+        const params = {
+          Bucket: "jays-trading-blog-images",
+          Key: `images/${Date.now()}-${file.name}`,
+          Body: file,
+          ContentType: file.type,
+          ACL: "public-read",
+        };
+
+        const { Location } = await s3.upload(params).promise();
+        return Location;
+      }
+
+      // Theme toggle functionality
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+      const savedTheme = localStorage.getItem("theme") || "light";
+      body.setAttribute("data-theme", savedTheme);
+      themeToggle.textContent = savedTheme === "dark" ? "🌞" : "🌓";
+
+      themeToggle.addEventListener("click", () => {
+        const currentTheme = body.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        body.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        themeToggle.textContent = newTheme === "dark" ? "🌞" : "🌓";
+      });
+
+      // Mobile menu toggle
+      const mobileMenu = document.getElementById("mobile-menu");
+      const navLinks = document.querySelector(".nav-links");
+
+      mobileMenu.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+      });
+
+      // Auth Controls
+      const loginBtn = document.getElementById("login-btn");
+      const logoutBtn = document.getElementById("logout-btn");
+      const authSection = document.getElementById("auth-section");
+      const postFormSection = document.querySelector(".post-form-section");
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const loginSubmit = document.getElementById("login-submit");
+      const signupSubmit = document.getElementById("signup-submit");
+
+      // Post Management Elements
+      const postsContainer = document.getElementById("posts-container");
+      const postTitleInput = document.getElementById("post-title");
+      const postImageInput = document.getElementById("post-image");
+      const imagePreview = document.getElementById("image-preview");
+      const postTagsInput = document.getElementById("post-tags");
+      const postCategorySelect = document.getElementById("post-category");
+      const addCategoryBtn = document.getElementById("add-category-btn");
+      const submitPostButton = document.getElementById("submit-post");
+      const cancelEditButton = document.getElementById("cancel-edit");
+      const editIdInput = document.getElementById("edit-id");
+      const formTitle = document.getElementById("form-title");
+      const prevPageButton = document.getElementById("prev-page");
+      const nextPageButton = document.getElementById("next-page");
+      const pageInfo = document.getElementById("page-info");
+
+      // Search and Filter Elements
+      const searchInput = document.getElementById("search-input");
+      const filterCategorySelect = document.getElementById("filter-category");
+
+      // Export/Import Elements
+      const exportPostsButton = document.getElementById("export-posts");
+      const importPostsInput = document.getElementById("import-posts");
+      const importPostsButton = document.getElementById("import-posts-btn");
+
+      let currentUser = null;
+      let lastVisible = null;
+      let firstVisible = null;
+      let currentPage = 1;
+      const postsPerPage = 5;
+      let totalPosts = 0;
+      let categories = [];
+
+      // Check auth state
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loginBtn.style.display = "none";
+          logoutBtn.style.display = "inline-block";
+          authSection.style.display = "none";
+          postFormSection.style.display = "block";
+          loadCategories();
+          loadPosts(true);
+        } else {
+          loginBtn.style.display = "inline-block";
+          logoutBtn.style.display = "none";
+          authSection.style.display = "block";
+          postFormSection.style.display = "none";
+          loadCategories();
+          loadPosts(false);
+        }
+      });
+
+      // Login
+      loginSubmit.addEventListener("click", () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        auth
+          .signInWithEmailAndPassword(email, password)
+          .catch((error) => alert(error.message));
+      });
+
+      // Sign Up
+      signupSubmit.addEventListener("click", () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        auth
+          .createUserWithEmailAndPassword(email, password)
+          .catch((error) => alert(error.message));
+      });
+
+      // Logout
+      logoutBtn.addEventListener("click", () => {
+        auth.signOut().catch((error) => alert(error.message));
+      });
+
+      // Show login form
+      loginBtn.addEventListener("click", () => {
+        authSection.style.display = "block";
+      });
+
+      // Load categories
+      async function loadCategories() {
+        const snapshot = await db.collection("categories").get();
+        categories = [];
+        snapshot.forEach((doc) => {
+          categories.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Populate category dropdowns
+        postCategorySelect.innerHTML =
+          '<option value="">Select a category</option>';
+        filterCategorySelect.innerHTML =
+          '<option value="">All Categories</option>';
+        categories.forEach((category) => {
+          const option1 = document.createElement("option");
+          option1.value = category.name;
+          option1.textContent = category.name;
+          postCategorySelect.appendChild(option1);
+
+          const option2 = document.createElement("option");
+          option2.value = category.name;
+          option2.textContent = category.name;
+          filterCategorySelect.appendChild(option2);
+        });
+      }
+
+      // Add new category
+      addCategoryBtn.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const categoryName = prompt("Enter new category name:");
+        if (categoryName && categoryName.trim()) {
+          await db.collection("categories").add({
+            name: categoryName.trim(),
+            userId: currentUser.uid,
+          });
+          await loadCategories();
+        }
+      });
+
+      // Load posts with server-side pagination, search, and filtering
+      async function loadPosts(
+        isAuthenticated,
+        searchQuery = "",
+        categoryFilter = ""
+      ) {
+        let postsRef = db.collection("posts").orderBy("date", "desc");
+
+        // Apply search query
+        if (searchQuery) {
+          const searchLower = searchQuery.toLowerCase();
+          postsRef = postsRef.where(
+            "searchableContent",
+            "array-contains",
+            searchLower
+          );
+        }
+
+        // Apply category filter
+        if (categoryFilter) {
+          postsRef = postsRef.where("category", "==", categoryFilter);
+        }
+
+        // Get total number of posts
+        const totalSnapshot = await postsRef.get();
+        totalPosts = totalSnapshot.size;
+
+        // Calculate pagination
+        const start = (currentPage - 1) * postsPerPage;
+        let query = postsRef.limit(postsPerPage);
+
+        if (lastVisible && currentPage > 1) {
+          query = query.startAfter(lastVisible);
+        }
+
+        const snapshot = await query.get();
+        const posts = [];
+        snapshot.forEach((doc) => {
+          posts.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (posts.length > 0) {
+          firstVisible = snapshot.docs[0];
+          lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        }
+
+        renderPosts(posts, isAuthenticated);
+      }
+
+      // Function to render posts
+      async function renderPosts(posts, isAuthenticated) {
+        postsContainer.innerHTML = "";
+        for (const post of posts) {
+          const commentsSnapshot = await db
+            .collection("comments")
+            .where("postId", "==", post.id)
+            .orderBy("createdAt", "desc")
+            .get();
+          const comments = [];
+          commentsSnapshot.forEach((doc) => {
+            comments.push({ id: doc.id, ...doc.data() });
+          });
+
+          const postElement = document.createElement("article");
+          postElement.classList.add("post");
+          postElement.innerHTML = `
+            <h3>${post.title}</h3>
+            <p class="post-meta">Published on ${post.date} by Jay | Category: ${
+            post.category || "Uncategorized"
+          }</p>
+            ${
+              post.image
+                ? `<img src="${post.image}" alt="Featured image for ${post.title}" class="post-image" />`
+                : ""
+            }
+            <div class="post-content">${post.content}</div>
+            <p><strong>Tags:</strong> ${post.tags.join(", ")}</p>
+            ${
+              isAuthenticated
+                ? `<button class="edit-post" data-id="${post.id}">Edit</button>
+                   <button class="delete-post" data-id="${post.id}">Delete</button>`
+                : ""
+            }
+            <div class="comments-section">
+              <h4>Comments</h4>
+              <div class="comments-list" data-post-id="${post.id}">
+                ${comments
+                  .map(
+                    (comment) => `
+                  <div class="comment">
+                    <p><strong>${
+                      comment.userEmail
+                    }</strong> on ${comment.createdAt
+                      .toDate()
+                      .toLocaleString()}</p>
+                    <p>${comment.content}</p>
+                    ${
+                      isAuthenticated && comment.userId === currentUser?.uid
+                        ? `<button class="delete-comment" data-id="${comment.id}">Delete</button>`
+                        : ""
+                    }
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+              ${
+                isAuthenticated
+                  ? `
+                <div class="add-comment">
+                  <textarea class="comment-input" placeholder="Add a comment..." data-post-id="${post.id}"></textarea>
+                  <button class="submit-comment" data-post-id="${post.id}">Submit Comment</button>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          `;
+          postsContainer.appendChild(postElement);
+        }
+
+        // Update pagination controls
+        const totalPages = Math.ceil(totalPosts / postsPerPage);
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        prevPageButton.disabled = currentPage === 1;
+        nextPageButton.disabled =
+          currentPage === totalPages || totalPages === 0;
+
+        // Add event listeners to edit, delete, and comment buttons
+        if (isAuthenticated) {
+          document.querySelectorAll(".edit-post").forEach((button) => {
+            button.addEventListener("click", (e) => {
+              const id = e.target.getAttribute("data-id");
+              editPost(id);
+            });
+          });
+
+          document.querySelectorAll(".delete-post").forEach((button) => {
+            button.addEventListener("click", (e) => {
+              const id = e.target.getAttribute("data-id");
+              deletePost(id);
+            });
+          });
+
+          document.querySelectorAll(".submit-comment").forEach((button) => {
+            button.addEventListener("click", async (e) => {
+              const postId = e.target.getAttribute("data-post-id");
+              const commentInput = document.querySelector(
+                `.comment-input[data-post-id="${postId}"]`
+              );
+              const content = commentInput.value.trim();
+              if (content) {
+                await db.collection("comments").add({
+                  postId,
+                  userId: currentUser.uid,
+                  userEmail: currentUser.email,
+                  content,
+                  createdAt: new Date(),
+                });
+                commentInput.value = "";
+                await loadPosts(
+                  true,
+                  searchInput.value,
+                  filterCategorySelect.value
+                );
+              }
+            });
+          });
+
+          document.querySelectorAll(".delete-comment").forEach((button) => {
+            button.addEventListener("click", async (e) => {
+              const commentId = e.target.getAttribute("data-id");
+              await db.collection("comments").doc(commentId).delete();
+              await loadPosts(
+                true,
+                searchInput.value,
+                filterCategorySelect.value
+              );
+            });
+          });
+        }
+      }
+
+      // Pagination controls
+      prevPageButton.addEventListener("click", async () => {
+        if (currentPage > 1) {
+          currentPage--;
+          lastVisible = firstVisible;
+          await loadPosts(true, searchInput.value, filterCategorySelect.value);
+        }
+      });
+
+      nextPageButton.addEventListener("click", async () => {
+        const totalPages = Math.ceil(totalPosts / postsPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          await loadPosts(true, searchInput.value, filterCategorySelect.value);
+        }
+      });
+
+      // Search and filter
+      searchInput.addEventListener("input", async () => {
+        currentPage = 1;
+        lastVisible = null;
+        await loadPosts(true, searchInput.value, filterCategorySelect.value);
+      });
+
+      filterCategorySelect.addEventListener("change", async () => {
+        currentPage = 1;
+        lastVisible = null;
+        await loadPosts(true, searchInput.value, filterCategorySelect.value);
+      });
+
+      // Function to handle featured image upload and preview
+      postImageInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const imageUrl = await uploadImageToS3(file);
+          imagePreview.innerHTML = `<img src="${imageUrl}" alt="Image preview" style="max-width: 200px; max-height: 200px; border-radius: 5px;" />`;
+        } else {
+          imagePreview.innerHTML = "";
+        }
+      });
+
+      // Function to add or update a post
+      submitPostButton.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const title = postTitleInput.value.trim();
+        const content = quill.root.innerHTML.trim();
+        const tags = postTagsInput.value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== "");
+        const category = postCategorySelect.value;
+        const editId = editIdInput.value;
+        const imageFile = postImageInput.files[0];
+
+        if (!title || !content || content === "<p><br></p>") {
+          alert("Please enter a title and content for the post.");
+          return;
+        }
+
+        const date = new Date().toISOString().split("T")[0];
+        const searchableContent = [
+          title.toLowerCase(),
+          ...tags.map((tag) => tag.toLowerCase()),
+          ...content
+            .replace(/<[^>]+>/g, "")
+            .toLowerCase()
+            .split(/\s+/),
+        ].filter((word) => word.length > 2);
+
+        const postData = {
+          title,
+          content,
+          tags,
+          category: category || "Uncategorized",
+          date,
+          userId: currentUser.uid,
+          searchableContent,
+        };
+
+        if (imageFile) {
+          const imageUrl = await uploadImageToS3(imageFile);
+          postData.image = imageUrl;
+        } else if (editId) {
+          const existingPost = (
+            await db.collection("posts").doc(editId).get()
+          ).data();
+          postData.image = existingPost.image || null;
+        } else {
+          postData.image = null;
+        }
+
+        if (editId) {
+          await db.collection("posts").doc(editId).update(postData);
+        } else {
+          await db.collection("posts").add(postData);
+        }
+
+        resetForm();
+        currentPage = 1;
+        await loadPosts(true);
+      });
+
+      // Function to edit a post
+      async function editPost(id) {
+        if (!currentUser) return;
+
+        const postDoc = await db.collection("posts").doc(id).get();
+        const post = postDoc.data();
+        if (post.userId !== currentUser.uid) {
+          alert("You can only edit your own posts.");
+          return;
+        }
+
+        postTitleInput.value = post.title;
+        quill.root.innerHTML = post.content;
+        postTagsInput.value = post.tags.join(", ");
+        postCategorySelect.value = post.category || "";
+        editIdInput.value = id;
+        formTitle.textContent = "Edit Post";
+        submitPostButton.textContent = "Update Post";
+        cancelEditButton.style.display = "inline-block";
+        if (post.image) {
+          imagePreview.innerHTML = `<img src="${post.image}" alt="Image preview" style="max-width: 200px; max-height: 200px; border-radius: 5px;" />`;
+        } else {
+          imagePreview.innerHTML = "";
+        }
+        postImageInput.value = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      // Function to delete a post
+      async function deletePost(id) {
+        if (!currentUser) return;
+
+        const postDoc = await db.collection("posts").doc(id).get();
+        const post = postDoc.data();
+        if (post.userId !== currentUser.uid) {
+          alert("You can only delete your own posts.");
+          return;
+        }
+
+        if (confirm("Are you sure you want to delete this post?")) {
+          await db.collection("posts").doc(id).delete();
+          const commentsSnapshot = await db
+            .collection("comments")
+            .where("postId", "==", id)
+            .get();
+          const batch = db.batch();
+          commentsSnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+          currentPage = 1;
+          await loadPosts(true);
+        }
+      }
+
+      // Function to reset the form
+      function resetForm() {
+        postTitleInput.value = "";
+        quill.root.innerHTML = "";
+        postTagsInput.value = "";
+        postImageInput.value = "";
+        imagePreview.innerHTML = "";
+        postCategorySelect.value = "";
+        editIdInput.value = "";
+        formTitle.textContent = "Add New Post";
+        submitPostButton.textContent = "Submit Post";
+        cancelEditButton.style.display = "none";
+      }
+
+      // Cancel edit
+      cancelEditButton.addEventListener("click", () => {
+        resetForm();
+      });
+
+      // Export posts
+      exportPostsButton.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const postsRef = db
+          .collection("posts")
+          .where("userId", "==", currentUser.uid);
+        const snapshot = await postsRef.get();
+        const postsToExport = [];
+        snapshot.forEach((doc) => {
+          postsToExport.push({ id: doc.id, ...doc.data() });
+        });
+
+        const dataStr = JSON.stringify(postsToExport, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "blog-posts.json";
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Import posts
+      importPostsButton.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const file = importPostsInput.files[0];
+        if (!file) {
+          alert("Please select a JSON file to import.");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const importedPosts = JSON.parse(e.target.result);
+            const batch = db.batch();
+            importedPosts.forEach((post) => {
+              const postRef = db.collection("posts").doc();
+              post.userId = currentUser.uid;
+              post.date = post.date || new Date().toISOString().split("T")[0];
+              post.searchableContent = [
+                post.title.toLowerCase(),
+                ...post.tags.map((tag) => tag.toLowerCase()),
+                ...post.content
+                  .replace(/<[^>]+>/g, "")
+                  .toLowerCase()
+                  .split(/\s+/),
+              ].filter((word) => word.length > 2);
+              batch.set(postRef, post);
+            });
+            await batch.commit();
+            alert("Posts imported successfully!");
+            currentPage = 1;
+            await loadPosts(true);
+          } catch (error) {
+            alert("Error importing posts: " + error.message);
+          }
+        };
+        reader.readAsText(file);
+      });
+    </script>
+  </body>
+</html>

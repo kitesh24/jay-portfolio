@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jay's Trading Bot</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="bot.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <img src="/images/logo.png" alt="Logo" />
+        <div class="logo">Jay's Trading Bot</div>
+      </div>
+      <button
+        class="toggle-btn"
+        id="mobile-menu"
+        aria-label="Toggle navigation menu"
+      >
+        <i class="fas fa-bars"></i>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html" aria-label="Home"
+          ><i class="fas fa-home"></i> Home</a
+        >
+        <a href="blog.html" aria-label="Dashboard"
+          ><i class="fas fa-chart-line"></i> Dashboard</a
+        >
+        <a href="services.html" aria-label="Services"
+          ><i class="fas fa-cogs"></i> Services</a
+        >
+      </nav>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        🌓
+      </button>
+    </header>
+
+    <div class="container">
+      <section class="strategy-section">
+        <h2>My Trading Strategy</h2>
+        <p><strong>Name:</strong> Trend-Following with Tight Stops</p>
+        <p>
+          <strong>Description:</strong> This bot trades based on a 50-period
+          moving average crossing over a 200-period moving average on a 1-hour
+          chart. A bullish crossover (MA50 > MA200) triggers a Long trade, while
+          a bearish crossover (MA50 < MA200) triggers a Short trade. It uses a
+          lot size of 0.1-0.25, risking 1% of the current balance per trade.
+          Stop Loss is set 0.5-1% from the entry, and Take Profit targets a 1:2
+          Risk:Reward ratio. Trades are executed on volatile pairs like EUR/USD
+          and GBP/USD after breakouts.
+        </p>
+      </section>
+
+      <section class="balance-section">
+        <div class="balance-item">
+          <h3>Initial Balance</h3>
+          <p id="initialBalance">$10,000.00</p>
+        </div>
+        <div class="balance-item">
+          <h3>Current Balance</h3>
+          <p id="currentBalance">$9,716.79</p>
+        </div>
+        <div class="balance-item">
+          <h3>Max Balance</h3>
+          <p id="maxBalance">$9,937.36</p>
+        </div>
+        <div class="balance-item">
+          <h3>Drawdown</h3>
+          <p id="drawdown">2.21%</p>
+        </div>
+      </section>
+
+      <section class="charts-container">
+        <div class="chart-container">
+          <canvas id="myChart"></canvas>
+        </div>
+        <div class="pie-chart-container">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </section>
+
+      <section class="bot-activity">
+        <h2>Bot Activity</h2>
+        <div id="botLog"></div>
+      </section>
+
+      <section class="trades-table">
+        <h2>Trade History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Pair</th>
+              <th>L/S</th>
+              <th>Size</th>
+              <th>Entry</th>
+              <th>Stop Loss</th>
+              <th>Take Profit</th>
+              <th>R:R</th>
+              <th>Profit/Loss</th>
+              <th>Balance</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="tradeTableBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <p>© 2025 Jay - All Rights Reserved</p>
+    </footer>
+
+    <script>
+      // Initial data
+      const initialData = {
+        trades: [
+          {
+            date: "2024-09-09",
+            pair: "EUR/USD",
+            ls: "Long",
+            size: 0.72,
+            entry: 1.10435,
+            stopLoss: null,
+            takeProfit: null,
+            rr: -1,
+            profitLoss: -62.64,
+            balance: 9937.36,
+            notes: "",
+          },
+          {
+            date: "2024-09-13",
+            pair: "EUR/USD",
+            ls: "Long",
+            size: 0.21,
+            entry: 1.089,
+            stopLoss: null,
+            takeProfit: null,
+            rr: -1,
+            profitLoss: -24.78,
+            balance: 9912.58,
+            notes: "",
+          },
+          {
+            date: "2024-10-18",
+            pair: "GBP/USD",
+            ls: "Short",
+            size: 0.25,
+            entry: 1.2962,
+            stopLoss: null,
+            takeProfit: null,
+            rr: -1,
+            profitLoss: -58.5,
+            balance: 9853.43,
+            notes: "",
+          },
+          {
+            date: "2024-10-25",
+            pair: "GBP/USD",
+            ls: "Short",
+            size: 0.25,
+            entry: 1.2976,
+            stopLoss: null,
+            takeProfit: null,
+            rr: -1,
+            profitLoss: -45.36,
+            balance: 9808.07,
+            notes: "",
+          },
+          {
+            date: "2024-10-31",
+            pair: "USD/CHF",
+            ls: "Long",
+            size: 0.2,
+            entry: 0.8648,
+            stopLoss: null,
+            takeProfit: null,
+            rr: -1,
+            profitLoss: -14.46,
+            balance: 9793.61,
+            notes: "",
+          },
+          {
+            date: "2024-11-04",
+            pair: "GBP/JPY",
+            ls: "Long",
+            size: 0.04,
+            entry: 1.2964,
+            stopLoss: 1.2989,
+            takeProfit: 1.2844,
+            rr: 4.946226951,
+            profitLoss: -10.0,
+            balance: 9773.56,
+            notes: "",
+          },
+          {
+            date: "2024-11-04",
+            pair: "USD/JPY",
+            ls: "Long",
+            size: 0.04,
+            entry: 151.978,
+            stopLoss: 151.54,
+            takeProfit: 153.869,
+            rr: 4.313751598,
+            profitLoss: -11.72,
+            balance: 9751.84,
+            notes: "",
+          },
+          {
+            date: "2024-11-07",
+            pair: "GBP/USD",
+            ls: "Short",
+            size: 0.04,
+            entry: 1.2975,
+            stopLoss: 1.3001,
+            takeProfit: 1.2869,
+            rr: 4.162921339,
+            profitLoss: -16.68,
+            balance: 9734.39,
+            notes: "",
+          },
+          {
+            date: "2024-11-19",
+            pair: "EUR/USD",
+            ls: "Short",
+            size: 0.04,
+            entry: 1.0595,
+            stopLoss: 1.0609,
+            takeProfit: 1.0518,
+            rr: 5.29585724,
+            profitLoss: -6.01,
+            balance: 9728.38,
+            notes: "",
+          },
+          {
+            date: "2024-11-21",
+            pair: "USD/CHF",
+            ls: "Long",
+            size: 0.04,
+            entry: 0.8831,
+            stopLoss: 0.8811,
+            takeProfit: 0.8916,
+            rr: 4.15219442,
+            profitLoss: 12.46,
+            balance: 9740.84,
+            notes: "",
+          },
+          {
+            date: "2024-11-25",
+            pair: "GBP/JPY",
+            ls: "Long",
+            size: 0.04,
+            entry: 194.92,
+            stopLoss: 194.521,
+            takeProfit: 197.378,
+            rr: 6.498687664,
+            profitLoss: -7.47,
+            balance: 9733.4,
+            notes: "",
+          },
+          {
+            date: "2024-11-25",
+            pair: "EUR/USD",
+            ls: "Short",
+            size: 0.03,
+            entry: 1.0477,
+            stopLoss: 1.0505,
+            takeProfit: 1.0332,
+            rr: 5.193548387,
+            profitLoss: -7.47,
+            balance: 9725.4,
+            notes: "",
+          },
+          {
+            date: "2024-11-25",
+            pair: "AUD/USD",
+            ls: "Short",
+            size: 0.03,
+            entry: 0.6522,
+            stopLoss: 0.6537,
+            takeProfit: 0.6441,
+            rr: 5.206451613,
+            profitLoss: -3.15,
+            balance: 9720.25,
+            notes: "",
+          },
+          {
+            date: "2024-12-17",
+            pair: "GBP/USD",
+            ls: "Short",
+            size: 0.06,
+            entry: 1.2593,
+            stopLoss: 1.2614,
+            takeProfit: 1.2493,
+            rr: 4.945544554,
+            profitLoss: -10.1,
+            balance: 9716.79,
+            notes: "",
+          },
+        ],
+      };
+
+      // Load saved data
+      let trades =
+        JSON.parse(localStorage.getItem("trades")) || initialData.trades;
+      const initialBalance = 10000.0;
+      let currentBalance = trades[trades.length - 1].balance;
+      let maxBalance = Math.max(...trades.map((trade) => trade.balance));
+      const drawdown = (
+        ((maxBalance - currentBalance) / maxBalance) *
+        100
+      ).toFixed(2);
+
+      // Display initial metrics
+      document.getElementById(
+        "initialBalance"
+      ).textContent = `$${initialBalance.toFixed(2)}`;
+      document.getElementById(
+        "currentBalance"
+      ).textContent = `$${currentBalance.toFixed(2)}`;
+      document.getElementById(
+        "maxBalance"
+      ).textContent = `$${maxBalance.toFixed(2)}`;
+      document.getElementById("drawdown").textContent = `${drawdown}%`;
+
+      // Line Chart
+      const ctx = document.getElementById("myChart").getContext("2d");
+      const myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: trades.map((trade) => trade.date),
+          datasets: [
+            {
+              label: "Profit/Loss ($)",
+              data: trades.map((trade) => trade.profitLoss),
+              borderColor: "#e74c3c",
+              backgroundColor: "rgba(231, 76, 60, 0.2)",
+              fill: true,
+              tension: 0.1,
+            },
+            {
+              label: "Balance ($)",
+              data: trades.map((trade) => trade.balance),
+              borderColor: "#3498db",
+              backgroundColor: "rgba(52, 152, 219, 0.2)",
+              fill: true,
+              tension: 0.1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: { display: true, text: "Amount ($)" },
+            },
+            x: { title: { display: true, text: "Date" } },
+          },
+          plugins: {
+            legend: { position: "top" },
+            title: { display: true, text: "Bot Performance" },
+          },
+        },
+      });
+
+      // Pie Chart
+      const pieCtx = document.getElementById("pieChart").getContext("2d");
+      const pieChart = new Chart(pieCtx, {
+        type: "pie",
+        data: {
+          labels: ["Current Balance", "Drawdown"],
+          datasets: [
+            {
+              data: [currentBalance, initialBalance - currentBalance],
+              backgroundColor: ["#3498db", "#e74c3c"],
+              borderColor: "#fff",
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            title: { display: true, text: "Balance Breakdown" },
+          },
+        },
+      });
+
+      // Populate trades table
+      function populateTradesTable() {
+        const tbody = document.getElementById("tradeTableBody");
+        tbody.innerHTML = "";
+        trades.forEach((trade) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${trade.date}</td>
+            <td>${trade.pair}</td>
+            <td>${trade.ls}</td>
+            <td>${trade.size}</td>
+            <td>${trade.entry}</td>
+            <td>${trade.stopLoss || "-"}</td>
+            <td>${trade.takeProfit || "-"}</td>
+            <td>${trade.rr}</td>
+            <td class="${trade.profitLoss >= 0 ? "positive" : "negative"}">${
+            trade.profitLoss
+          }</td>
+            <td>${trade.balance}</td>
+            <td>${trade.notes || "-"}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // Initial population
+      populateTradesTable();
+
+      // Trading Bot Class
+      class TradingBot {
+        constructor(balance) {
+          this.balance = balance;
+          this.maxBalance = balance;
+          this.trades = trades;
+          this.priceHistory = [];
+          this.ma50 = [];
+          this.ma200 = [];
+          this.pairs = ["EUR/USD", "GBP/USD"]; // Volatile pairs
+          this.currentPair =
+            this.pairs[Math.floor(Math.random() * this.pairs.length)];
+        }
+
+        addPrice(price) {
+          this.priceHistory.push(price);
+          if (this.priceHistory.length > 200) this.priceHistory.shift();
+          this.updateMovingAverages();
+        }
+
+        updateMovingAverages() {
+          this.ma50 = this.calculateMA(50);
+          this.ma200 = this.calculateMA(200);
+        }
+
+        calculateMA(period) {
+          if (this.priceHistory.length < period) return [];
+          return this.priceHistory
+            .slice(-period)
+            .map(
+              (_, i, arr) =>
+                arr.slice(0, i + 1).reduce((a, b) => a + b, 0) /
+                Math.min(i + 1, period)
+            )
+            .slice(-period);
+        }
+
+        decideTrade() {
+          if (this.priceHistory.length < 200) return null;
+          const lastMA50 = this.ma50[this.ma50.length - 1];
+          const prevMA50 = this.ma50[this.ma50.length - 2];
+          const lastMA200 = this.ma200[this.ma200.length - 1];
+          const prevMA200 = this.ma200[this.ma200.length - 2];
+          const currentPrice = this.priceHistory[this.priceHistory.length - 1];
+
+          if (lastMA50 > lastMA200 && prevMA50 <= prevMA200)
+            return this.executeTrade("Long", currentPrice);
+          if (lastMA50 < lastMA200 && prevMA50 >= prevMA200)
+            return this.executeTrade("Short", currentPrice);
+          return null;
+        }
+
+        executeTrade(ls, entryPrice) {
+          const riskPercent = 0.01; // 1% risk
+          const lotSize = Math.random() * (0.25 - 0.1) + 0.1; // 0.1-0.25
+          const stopLossPercent = Math.random() * (0.01 - 0.005) + 0.005; // 0.5-1%
+          const rr = 2; // 1:2 R:R
+
+          const riskAmount = this.balance * riskPercent;
+          const stopLossDistance = entryPrice * stopLossPercent;
+          const takeProfitDistance = stopLossDistance * rr;
+
+          const stopLoss =
+            ls === "Long"
+              ? entryPrice - stopLossDistance
+              : entryPrice + stopLossDistance;
+          const takeProfit =
+            ls === "Long"
+              ? entryPrice + takeProfitDistance
+              : entryPrice - takeProfitDistance;
+
+          // Simulate outcome (50% win rate for demo)
+          const profitLoss =
+            Math.random() > 0.5 ? riskAmount * rr : -riskAmount;
+          this.balance += profitLoss;
+          this.maxBalance = Math.max(this.maxBalance, this.balance);
+
+          const trade = {
+            date: new Date().toISOString().split("T")[0],
+            pair: this.currentPair,
+            ls,
+            size: parseFloat(lotSize.toFixed(2)),
+            entry: parseFloat(entryPrice.toFixed(5)),
+            stopLoss: parseFloat(stopLoss.toFixed(5)),
+            takeProfit: parseFloat(takeProfit.toFixed(5)),
+            rr,
+            profitLoss: parseFloat(profitLoss.toFixed(2)),
+            balance: parseFloat(this.balance.toFixed(2)),
+            notes: "Automated trade by bot",
+          };
+
+          this.trades.push(trade);
+          myChart.data.labels.push(trade.date);
+          myChart.data.datasets[0].data.push(trade.profitLoss);
+          myChart.data.datasets[1].data.push(trade.balance);
+          myChart.update();
+          pieChart.data.datasets[0].data = [
+            this.balance,
+            initialBalance - this.balance,
+          ];
+          pieChart.update();
+
+          document.getElementById(
+            "currentBalance"
+          ).textContent = `$${this.balance.toFixed(2)}`;
+          document.getElementById(
+            "maxBalance"
+          ).textContent = `$${this.maxBalance.toFixed(2)}`;
+          document.getElementById("drawdown").textContent = `${(
+            ((this.maxBalance - this.balance) / this.maxBalance) *
+            100
+          ).toFixed(2)}%`;
+
+          populateTradesTable();
+          localStorage.setItem("trades", JSON.stringify(this.trades));
+
+          // Log bot activity
+          const log = document.getElementById("botLog");
+          log.innerHTML += `<p>${trade.date} - ${trade.ls} ${trade.pair} @ ${
+            trade.entry
+          } | P/L: $${trade.profitLoss.toFixed(2)}</p>`;
+          log.scrollTop = log.scrollHeight;
+
+          return trade;
+        }
+
+        run() {
+          const basePrice = this.currentPair === "EUR/USD" ? 1.1 : 1.3;
+          const priceIncrement = Math.random() * 0.0005 - 0.00025;
+          const newPrice =
+            (this.priceHistory.length
+              ? this.priceHistory[this.priceHistory.length - 1]
+              : basePrice) + priceIncrement;
+          this.addPrice(newPrice);
+
+          const trade = this.decideTrade();
+          if (trade)
+            console.log(
+              `Trade: ${trade.ls} ${trade.pair} at ${trade.entry}, P/L: ${trade.profitLoss}`
+            );
+
+          setTimeout(() => this.run(), 2000); // Simulate 1-hour intervals with 2-second demo
+        }
+      }
+
+      // Initialize bot
+      const bot = new TradingBot(currentBalance);
+      bot.priceHistory = Array(200)
+        .fill(1.1)
+        .map(() => 1.1 + (Math.random() * 0.01 - 0.005)); // Seed with random prices
+      bot.run();
+
+      // Theme toggle
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+      const savedTheme = localStorage.getItem("theme") || "light";
+      body.setAttribute("data-theme", savedTheme);
+      themeToggle.textContent = savedTheme === "dark" ? "🌞" : "🌓";
+
+      themeToggle.addEventListener("click", () => {
+        const currentTheme = body.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        body.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        themeToggle.textContent = newTheme === "dark" ? "🌞" : "🌓";
+      });
+
+      // Mobile menu toggle
+      const mobileMenu = document.getElementById("mobile-menu");
+      const navLinks = document.querySelector(".nav-links");
+
+      mobileMenu.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+      });
+    </script>
+  </body>
+</html>

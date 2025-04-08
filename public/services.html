@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Services - Jay's Trading Bot</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSB7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="services.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <img src="/images/logo.png" alt="Logo" />
+        <div class="logo">Jay's Trading Bot</div>
+      </div>
+      <button
+        class="toggle-btn"
+        id="mobile-menu"
+        aria-label="Toggle navigation menu"
+      >
+        <i class="fas fa-bars"></i>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html" aria-label="Home"
+          ><i class="fas fa-home"></i> Home</a
+        >
+        <a href="blog.html" aria-label="Dashboard"
+          ><i class="fas fa-chart-line"></i> Dashboard</a
+        >
+        <a href="services.html" aria-label="Services"
+          ><i class="fas fa-cogs"></i> Services</a
+        >
+      </nav>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        🌓
+      </button>
+    </header>
+
+    <div class="container">
+      <section class="services-section">
+        <h2>Our Services</h2>
+        <div class="service">
+          <h3>Trading Bot Automation</h3>
+          <p>
+            Automate your trading strategies with our advanced trading bot,
+            designed to maximize profits and minimize risks.
+          </p>
+        </div>
+        <div class="service">
+          <h3>Market Analysis</h3>
+          <p>
+            Get real-time market insights and analysis to make informed trading
+            decisions.
+          </p>
+        </div>
+        <div class="service">
+          <h3>AI Chatbot Assistance</h3>
+          <p>
+            Interact with our AI chatbot to get trading tips, market updates, or
+            answers to your questions. Use the microphone to speak your queries!
+          </p>
+          <div class="chatbot-container">
+            <div class="chatbot-messages" id="chatbot-messages"></div>
+            <div class="chatbot-input">
+              <input
+                type="text"
+                id="chatbot-input"
+                placeholder="Ask the chatbot..."
+              />
+              <button id="chatbot-mic" aria-label="Use microphone">
+                <i class="fas fa-microphone"></i>
+              </button>
+              <button id="chatbot-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <p>© 2025 Jay - All Rights Reserved</p>
+    </footer>
+
+    <script>
+      // Theme toggle functionality
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+      const savedTheme = localStorage.getItem("theme") || "light";
+      body.setAttribute("data-theme", savedTheme);
+      themeToggle.textContent = savedTheme === "dark" ? "🌞" : "🌓";
+
+      themeToggle.addEventListener("click", () => {
+        const currentTheme = body.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        body.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        themeToggle.textContent = newTheme === "dark" ? "🌞" : "🌓";
+      });
+
+      // Mobile menu toggle
+      const mobileMenu = document.getElementById("mobile-menu");
+      const navLinks = document.querySelector(".nav-links");
+
+      mobileMenu.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+      });
+
+      // Chatbot functionality
+      const chatbotMessages = document.getElementById("chatbot-messages");
+      const chatbotInput = document.getElementById("chatbot-input");
+      const chatbotMic = document.getElementById("chatbot-mic");
+      const chatbotSend = document.getElementById("chatbot-send");
+
+      // Initialize Speech Recognition
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+      if (recognition) {
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        chatbotMic.addEventListener("click", () => {
+          recognition.start();
+          chatbotMic.style.color = "var(--accent-color)";
+        });
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          chatbotInput.value = transcript;
+          sendMessage(transcript);
+          chatbotMic.style.color = "";
+        };
+
+        recognition.onerror = (event) => {
+          alert("Speech recognition error: " + event.error);
+          chatbotMic.style.color = "";
+        };
+
+        recognition.onend = () => {
+          chatbotMic.style.color = "";
+        };
+      } else {
+        chatbotMic.style.display = "none";
+        alert("Speech recognition is not supported in your browser.");
+      }
+
+      // Send message on button click or Enter key
+      chatbotSend.addEventListener("click", () => {
+        const message = chatbotInput.value.trim();
+        if (message) {
+          sendMessage(message);
+        }
+      });
+
+      chatbotInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          const message = chatbotInput.value.trim();
+          if (message) {
+            sendMessage(message);
+          }
+        }
+      });
+
+      // Function to send message and get response
+      function sendMessage(message) {
+        // Display user message
+        const userMessage = document.createElement("div");
+        userMessage.classList.add("message", "user-message");
+        userMessage.textContent = message;
+        chatbotMessages.appendChild(userMessage);
+
+        // Get bot response
+        const botResponse = getBotResponse(message.toLowerCase());
+        const botMessage = document.createElement("div");
+        botMessage.classList.add("message", "bot-message");
+        botMessage.textContent = botResponse;
+        chatbotMessages.appendChild(botMessage);
+
+        // Clear input and scroll to bottom
+        chatbotInput.value = "";
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      }
+
+      // Simple bot response logic
+      function getBotResponse(message) {
+        if (message.includes("trading tip")) {
+          return "Always set a stop-loss to manage your risk effectively!";
+        } else if (message.includes("market update")) {
+          return "The market is currently trending upward, but keep an eye on volatility.";
+        } else if (message.includes("hello") || message.includes("hi")) {
+          return "Hello! How can I assist you with trading today?";
+        } else {
+          return "I'm not sure how to respond to that. Try asking for a trading tip or market update!";
+        }
+      }
+    </script>
+  </body>
+</html>
